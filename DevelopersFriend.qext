@@ -1,7 +1,7 @@
 {
-    "name": "DevelopersFriend",
+    "name": "/\\DevelopersFriend",
     "type": "visualization",
-    "description": "Action buttons to reload, publish, export this app and more",
+    "description": "Action buttons by data/\\bridge to reload, publish, export this app and more",
     "icon": "list",
     "version": "1.2.0",
     "author": "Christof Schwarz",
