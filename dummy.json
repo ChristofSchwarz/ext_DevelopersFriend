@@ -1,0 +1,9 @@
+[
+    {
+        "id": "uPSJBvu",
+        "type": "kpi",
+        "kpiExpression": "Count(DISTINCT [Planting Partner])",
+        "titleExpression": "#Planting Partners",
+        "trendExpression": "sum([Number of trees])"
+    }
+]

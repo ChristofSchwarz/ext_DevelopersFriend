@@ -1,0 +1,33 @@
+.qv-object-DevelopersFriend div.qv-object-content-container {
+	overflow: auto;
+	text-align: center;
+}
+
+.qv-object-DevelopersFriend button {
+	/*width: 100%; width comes from style parameter in button tag (dyn. setting of extension) */
+	margin-left: 1px;
+	margin-right: 1px;
+}
+
+.developersFriend-welcome {
+	font-size: 6.5pt;
+    color: #aaa;
+	position: absolute; 
+    bottom: 0px; 
+	right: 0px;
+}
+
+.developersFriend-ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+/* display logo in the properties "About" section */
+div[tid=aboutSection] div[tid=dbLogo] {
+  background: url(../extensions/DevelopersFriend/pics/databridgelogo.png) no-repeat;
+  background-size: 241px 113px;
+  height: 113px;
+  margin-left: 3px;
+}
