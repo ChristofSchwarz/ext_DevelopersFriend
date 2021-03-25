@@ -270,7 +270,7 @@ define([], function () {
                     show: function (data) {
                         return data.pCBexport == true
                     }
-                },{
+                }, {
                     type: "boolean",
                     defaultValue: true,
                     ref: "pWithData",
@@ -369,7 +369,7 @@ define([], function () {
         },
 
 
-       presentation: function (qlik) {
+        presentation: function (qlik) {
             return {
                 label: 'Presentation',
                 type: 'items',
@@ -377,58 +377,58 @@ define([], function () {
                     label: 'Button width',
                     type: 'integer',
                     ref: 'pBtnWidth',
-					component: 'slider',
-					min: 10,
-					max: 99,
-					step: 1,
+                    component: 'slider',
+                    min: 10,
+                    max: 99,
+                    step: 1,
                     defaultValue: 95
                 }, {
-					type: "string",
-					component: "dropdown",
-					label: "Show in the buttons",
-					ref: "pIconTxt",	
-					defaultValue: "t",
-					options: [
-						{ value: "t",label: "Text" },
-						{ value: "i",label: "Icon" },
-						{ value: "it",label: "Icon and Text" }
-					],
-				}]
+                    type: "string",
+                    component: "dropdown",
+                    label: "Show in the buttons",
+                    ref: "pIconTxt",
+                    defaultValue: "t",
+                    options: [
+                        { value: "t", label: "Text" },
+                        { value: "i", label: "Icon" },
+                        { value: "it", label: "Icon and Text" }
+                    ],
+                }]
             }
         },
 
         about: function ($) {
             return {
-				version: {
+                version: {
                     label: 'Extension version',
-					component: "link",
+                    component: "link",
                     url: '../extensions/DevelopersFriend/DevelopersFriend.qext'
                 },
                 txt1: {
                     label: "This extension is free of charge by data/\\bridge, Qlik OEM partner and specialist for Mashup integrations.",
                     component: "text"
                 },
-				txt2: {
+                txt2: {
                     label: "Use as is. No support without a maintenance subscription.",
                     component: "text"
                 },
-				dbLogo: {
+                dbLogo: {
                     label: "",
                     component: "text"
-                }, 
-				btn: {
+                },
+                btn: {
                     label: "About Us",
                     component: "link",
                     url: 'https://www.databridge.ch'
                 },
-				docu:{
+                docu: {
                     label: "Open Documentation",
                     component: "button",
                     action: function (arg) {
                         window.open('https://github.com/ChristofSchwarz/qs_ext_reloadreplace', '_blank');
                     }
-				}
+                }
             }
         }
     }
-});      
+});
