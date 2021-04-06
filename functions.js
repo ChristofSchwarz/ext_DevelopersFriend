@@ -148,7 +148,7 @@ define([], function () {
         },
 
         //=============================================================================================
-        btnClick2: async function ($, ownId, app, layout, vproxy, httpHeade, databridgeHubUrlr) { //, global) {
+        btnClick2: async function ($, ownId, app, layout, vproxy, httpHeader, databridgeHubUrl) { //, global) {
             //=========================================================================================
             var btnBefore = $('#btn2_' + ownId).html();
             // var httpHeader = {};
