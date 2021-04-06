@@ -1,0 +1,16 @@
+{
+    "name": "/\\DevelopersFriend",
+    "type": "visualization",
+    "description": "Action buttons by data/\\bridge to reload, publish, export this app and more",
+    "icon": "list",
+    "version": "1.22",
+    "author": "Christof Schwarz",
+    "homepage": "www.databridge.ch",
+    "keywords": "qlik-sense, visualization",
+    "license": "MIT",
+    "repository": "https://github.com/ChristofSchwarz/qs_ext_reloadreplace",
+    "preview": "pics/databridgelogo.png",
+    "dependencies": {
+        "qlik-sense": ">=3.0.x"
+    }
+}
