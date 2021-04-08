@@ -165,7 +165,8 @@ define([], function () {
                     return leonardoMsg(ownId, 'Error', 'Invalid target app id.', null, 'Close', true);
                 }
                 leonardoMsg(ownId, 'Confirm app replacement',
-                    'Really want to replace design of app "' + targetAppInfo[0].name + '"?<br/>'
+                    'Really want to replace design of app <a href="' + location.href.split('/app')[0] + '/app/' + layout.pTargetAppId
+                    + '">' + targetAppInfo[0].name + '</a>?<br/>'
                     + (targetAppInfo[0].stream ? ('The app is published in stream "' + targetAppInfo[0].stream.name + '"') : 'The app is not published.')
                     + '<br/>Owner is: ' + targetAppInfo[0].owner.userDirectory + '\\' + targetAppInfo[0].owner.userId,
                     'Ok', 'Cancel'
@@ -255,7 +256,7 @@ define([], function () {
                     }
                     if (objProps.footnote && objProps.footnote.qStringExpression)
                         streamObj.subTitleExpression = objProps.footnote.qStringExpression.qExpr;
-                        
+
                     list.push(streamObj)
                 }
                 console.log('Kpi list', list);
