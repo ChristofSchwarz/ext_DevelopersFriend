@@ -2,13 +2,6 @@
 
 define([], function () {
 
-
-    // function progressBar(perc) {
-    //     return '<div style="width:100%;height:10px;background-color:white;border:1px solid black">'
-    //         + '<div style="width:' + Math.round(perc * 100) + '%;height:10px;background-color:green;">&nbsp;</div>'
-    //         + '</div>';
-    // }
-
     //=============================================================================================
     function leonardoMsg(ownId, title, detail, ok, cancel, inverse) {
         //=========================================================================================
