@@ -3,7 +3,7 @@
     "type": "visualization",
     "description": "Action buttons by data/\\bridge to reload, publish, export this app and more",
     "icon": "list",
-    "version": "1.22",
+    "version": "1.23",
     "author": "Christof Schwarz",
     "homepage": "www.databridge.ch",
     "keywords": "qlik-sense, visualization",
