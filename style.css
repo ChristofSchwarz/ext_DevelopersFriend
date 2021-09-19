@@ -31,3 +31,16 @@ div[tid=aboutSection] div[tid=dbLogo] {
   height: 113px;
   margin-left: 3px;
 }
+
+.developersFriend-rotate {
+    animation-name: rotate;
+    animation-duration: 1.5s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    transform: rotate(1turn);
+    -webkit-animation-name: rotate;
+    -webkit-animation-duration: 1.5s;
+    -webkit-animation-iteration-count: infinite;
+    -webkit-animation-timing-function: linear;
+    -webkit-transform: rotate(1turn);
+}

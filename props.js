@@ -3,10 +3,13 @@
 // Custom Properties
 // https://help.qlik.com/en-US/sense-developer/November2020/Subsystems/Extensions/Content/Sense_Extensions/Howtos/custom-slider-properties.htm
 
-define([], function () {
+// Changes:
+// 31.08.2021 added "reload with specific task id" option
+
+define(["./functions"], function (functions) {
     return {
 
-        qrsSettings: function (qlik) {
+        qrsSettings: function (qlik, sess) {
             return {
                 label: 'Access to QRS API',
                 type: 'items',
@@ -22,7 +25,7 @@ define([], function () {
                         value: false,
                         label: "with my own rights"
                     }],
-                    defaultValue: true
+                    defaultValue: false
                 }, {
                     label: "You need to have ContentAdmin or RootAdmin role.",
                     component: "text",
@@ -48,18 +51,50 @@ define([], function () {
                     ref: 'hdrval',
                     defaultValue: 'extension-ReloadReplace',
                     show: function (layout) { return layout.pViaVproxy; }
-                }, /* {
-                    label: 'Run as',
-                    type: 'string',
-                    expression: 'optional',
-                    ref: 'pRunAs',
-                    defaultValue: 'UserDirectory=INTERNAL;UserId=sa_api'
-                },*/ {
-                    label: "Help",
+                }, {
+                    label: "Test settings ...",
                     component: "button",
-                    action: function (arg) {
-                        window.open('https://github.com/ChristofSchwarz/qs_ext_reloadreplace/blob/master/README.md#virtual-proxy-setup', '_blank');
-                    },
+                    action: function (layout) {
+                        console.log('Session info', sess);
+                        var httpHeaders = { "X-Qlik-XrfKey": sess.xrfkey };
+                        var url
+                        if (layout.pViaVproxy) {
+							url = '/' + layout.vproxy + "/qrs/user/full?filter=userId eq '" + layout.hdrval + "'" // ?filter=prefix eq '" + layout.vproxy + "'";
+                            //url = '/' + layout.vproxy + "/qrs/virtualproxyconfig" // ?filter=prefix eq '" + layout.vproxy + "'";
+                            httpHeaders[layout.hdrkey] = layout.hdrval;
+                        } else {
+                            url = sess.baseUrl + "/qrs/user/full?filter=userId eq '" + sess.user.userId + "' and userDirectory eq '" + sess.user.userDirectory + "'"
+                        }
+                        $.ajax({
+                            method: 'GET',
+                            url: url + (url.indexOf('?') == -1 ? '?' : '&') + "xrfkey=" + sess.xrfkey,
+                            headers: httpHeaders,
+                            success: function (res) {
+                                //alert('Success: QRS API is talking to you.'); 
+                                console.log('QRS API replied on ' + url, res);
+								const user = res[0];
+                                if (JSON.stringify(res).length > 2) {
+                                    functions.leonardoMsg(sess.xrfkey, 'Success',
+                                        'QRS API will be called as user <b>' + user.userDirectory + '\\' + user.userId 
+										+ '</b> who has the following roles: ' + JSON.stringify(user.roles), null, 'Close', false);
+                                } else {
+                                    functions.leonardoMsg(sess.xrfkey, 'Problem',
+                                        'QRS API is not responding as expected. The user <b>' + layout.hdrval 
+										+ '</b> did not exist.', null, 'Close', false);
+                                }
+							},
+                            error: function (xhr, status, error) {
+                                //alert('Connection to QRS API don\'t work.'); 
+                                functions.leonardoMsg(sess.xrfkey, 'Error',
+                                    'The connection to QRS API does\'t work with these settings.', null, 'Close', true);
+                            }
+                        })
+                    }
+                    //show: function (layout) { return layout.pViaVproxy; }
+                }, {
+                    label: "Help",
+                    component: "link",
+                    url: 'https://github.com/ChristofSchwarz/qs_ext_reloadreplace/blob/master/README.md#virtual-proxy-setup',
                     show: function (layout) { return layout.pViaVproxy; }
                 }]
             }
@@ -81,7 +116,26 @@ define([], function () {
                     ref: 'pBtnLabel1',
                     defaultValue: 'Reload',
                     show: function (data) { return data.pCBreload }
-                }, {
+                },{
+                    type: "boolean",
+                    component: "switch",
+                    label: "Reload Task",
+                    ref: "pReloadOwn",
+                    options: [{
+                        value: true,
+                        label: "Reload this app"
+                    }, {
+                        value: false,
+                        label: "Specific app (specify task)"
+                    }],
+                    defaultValue: true
+                },{
+					label: 'Task ID to trigger',
+					type: 'string',
+					ref: 'pTaskId',
+					expression: 'optional',
+					show: function (data) { return data.pCBreload && !data.pReloadOwn }
+				}, {
                     label: 'Hide within published apps',
                     type: 'boolean',
                     ref: 'pCBhideIfPublic',
@@ -122,15 +176,15 @@ define([], function () {
             }
         },
 
-        button2: function (qlik, databridgeHubUrl) {
-            var hasDatabridgeHub = $.ajax({ type: "HEAD", url: databridgeHubUrl, async: false });
+        button2: function (qlik, sess) {
+            //var hasDatabridgeHub = $.ajax({ type: "HEAD", url: databridgeHubUrl, async: false });
 
             return {
                 label: 'Replace App Button',
                 type: 'items',
                 items: [{
                     type: "boolean",
-                    defaultValue: true,
+                    defaultValue: false,
                     ref: "pCBreplace",
                     label: "Use Button"
                 }, {
@@ -143,13 +197,13 @@ define([], function () {
                     expression: 'optional',
                     ref: 'pBtnLabel2',
                     defaultValue: 'Replace App',
-                    show: function (data) { return data.pCBreplace }
+                    show: function (layout) { return layout.pCBreplace }
                 }, {
                     label: "Refresh this target app (id)",
                     type: 'string',
                     expression: 'optional',
                     ref: 'pTargetAppId',
-                    show: function (data) { return data.pCBreplace }
+                    show: function (layout) { return layout.pCBreplace }
                 }, {
                     type: "boolean",
                     component: "switch",
@@ -162,40 +216,40 @@ define([], function () {
                         value: false,
                         label: "use built-in code"
                     }],
-                    defaultValue: true
-                },
-                {
+                    defaultValue: false,
+                    show: function (layout) { return layout.pCBreplace }
+                }, {
                     label: "You don't have Databridge Hub installed.",
                     component: "text",
-                    show: function (layout) { return layout.pUseDBHub ? !(hasDatabridgeHub.status == 200) : false }
+                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sess.hasDatabridgeHub : false) }
                 }, {
                     label: 'Get it free from Github',
                     component: "link",
                     url: 'https://github.com/ChristofSchwarz/db_mash_databridgehub',
-                    show: function (layout) { return layout.pUseDBHub ? !(hasDatabridgeHub.status == 200) : false }
+                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sess.hasDatabridgeHub : false) }
                 }, {
                     label: "Go to Databridge Hub mashup",
                     component: "link",
-                    url: databridgeHubUrl,
-                    show: function (layout) { return layout.pUseDBHub ? (hasDatabridgeHub.status == 200) : false }
+                    url: sess.databridgeHubUrl,
+                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sess.hasDatabridgeHub : false) }
                 }, {
                     label: 'Copy Design',
                     type: 'boolean',
                     ref: 'pCopyDesign',
                     defaultValue: true,
-                    show: function (layout) { return layout.pUseDBHub ? (hasDatabridgeHub.status == 200) : false }
+                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sess.hasDatabridgeHub : false) }
                 }, {
                     label: 'Copy Data',
                     type: 'boolean',
                     ref: 'pCopyData',
                     defaultValue: true,
-                    show: function (layout) { return layout.pUseDBHub ? (hasDatabridgeHub.status == 200) : false }
+                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sess.hasDatabridgeHub : false) }
                 }, {
                     label: 'Copy Script',
                     type: 'boolean',
                     ref: 'pCopyScript',
                     defaultValue: true,
-                    show: function (layout) { return layout.pUseDBHub ? (hasDatabridgeHub.status == 200) : false }
+                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sess.hasDatabridgeHub : false) }
                 }, {
                     label: "Text color",
                     component: "color-picker",
@@ -203,8 +257,8 @@ define([], function () {
                     type: "object",
                     //dualOutput: true,
                     defaultValue: "#333333",
-                    show: function (data) {
-                        return data.pCBreplace == true
+                    show: function (layout) {
+                        return layout.pCBreplace == true
                     }
                 }, {
                     label: "Background color",
@@ -212,8 +266,8 @@ define([], function () {
                     ref: "pBgColor2",
                     type: "object",
                     defaultValue: "#ffffff",
-                    show: function (data) {
-                        return data.pCBreplace == true
+                    show: function (layout) {
+                        return layout.pCBreplace == true
                     }
                 }]
             }
@@ -225,7 +279,7 @@ define([], function () {
                 type: 'items',
                 items: [{
                     type: "boolean",
-                    defaultValue: true,
+                    defaultValue: false,
                     ref: "pCBstream",
                     label: "Use Button"
                 }, {
@@ -403,6 +457,149 @@ define([], function () {
             }
         },
 
+        button5: function (qlik) {
+            return {
+                label: 'Save Mappings',
+                type: 'items',
+                items: [{
+                    type: "boolean",
+                    defaultValue: false,
+                    ref: "pCBmappings",
+                    label: "Use Button"
+                }, {
+                    label: 'Button Label',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pBtnLabel5',
+                    defaultValue: 'Mappings',
+                    show: function (data) {
+                        return data.pCBmappings == true
+                    }
+                }, {
+                    label: 'Save in extension',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pMapExtension',
+                    defaultValue: 'mappings',
+                    show: function (data) {
+                        return data.pCBmappings == true
+                    }
+                }, {
+                    label: 'Filename',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pMapFilename',
+                    defaultValue: 'dummy.css',
+                    show: function (data) {
+                        return data.pCBmappings == true
+                    }
+                }, {
+                    label: 'Check condition before use',
+                    type: 'integer',
+                    expression: 'always',
+                    ref: 'pMapCondition',
+                    defaultValue: '=1 //GetSelectedCount(product.name)>1',
+                    show: function (data) {
+                        return data.pCBmappings == true
+                    }
+                }, {
+                    label: 'Error msg if condition is false',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pMapMessage',
+                    defaultValue: 'Condition is not met.',
+                    show: function (data) {
+                        return data.pCBmappings == true
+                    }
+                }, {
+					label: 'Keys (separate with CHR(10))',
+					type: 'string',
+					expression: 'always',
+					ref: 'pMapKeyVals',
+					defaultValue: '=Concat(DISTINCT product.name, CHR(10))',
+                 }, {
+                    type: "array",
+                    ref: "pMapWriteFields", //"listItems",
+                    label: "Save field(s)",
+                    itemTitleRef: "label",
+                    allowAdd: true,
+                    allowRemove: true,
+                    addTranslation: "Add Item",
+                    items: [
+                        {
+                            type: "string",
+                            ref: "label",
+                            label: "Label",
+                            expression: "optional",
+                            defaultValue: "='Map ' & Count(DISTINCT product.name) & ' products'",
+                        }, /*{
+                            type: "string",
+                            component: "radiobuttons",
+                            label: "Type of field",
+                            ref: "mapFieldType",
+                            options: [{
+                                value: "calc",
+                                label: "Calculated"
+                            }, {
+                                value: "input",
+                                label: "User input"
+                            }],
+                            defaultValue: "v"
+                        },*/ {
+                            label: 'Option(s) (separate with CHR(10))',
+                            type: 'string',
+                            expression: 'optional',
+                            ref: 'mapFieldOptions',
+                            defaultValue: '=Concat(DISTINCT product.name, CHR(10))',
+                        }, {
+                            label: 'Default Option',
+                            type: 'string',
+                            expression: 'optional',
+                            ref: 'mapFieldDefault',
+                            defaultValue: '=MaxString(product.name)',
+                        }
+                    ],
+                    show: function (data) {
+                        return data.pCBmappings == true
+                    }
+                }, {
+                    label: "Add username + timestamp",
+                    ref: "pMapAddUsername",
+                    type: "boolean",
+                    defaultValue: true,
+                    show: function (data) {
+                        return data.pCBmappings == true
+                    }
+                } ,{
+                    label: "Save space for repeating rows",
+                    ref: "pSaveSpace",
+                    type: "boolean",
+                    defaultValue: true,
+                    show: function (data) {
+                        return data.pCBmappings == true
+                    }
+                },{
+                    label: "Text color",
+                    component: "color-picker",
+                    ref: "pTxtColor5",
+                    type: "object",
+                    //dualOutput: true,
+                    defaultValue: "#333333",
+                    show: function (data) {
+                        return data.pCBmappings == true
+                    }
+                }, {
+                    label: "Background color",
+                    component: "color-picker",
+                    ref: "pBgColor5",
+                    type: "object",
+                    defaultValue: "#ffffff",
+                    show: function (data) {
+                        return data.pCBmappings == true
+                    }
+                }]
+            }
+        },
 
         presentation: function (qlik) {
             return {
@@ -422,7 +619,7 @@ define([], function () {
                     component: "dropdown",
                     label: "Show in the buttons",
                     ref: "pIconTxt",
-                    defaultValue: "t",
+                    defaultValue: "it",
                     options: [
                         { value: "t", label: "Text" },
                         { value: "i", label: "Icon" },

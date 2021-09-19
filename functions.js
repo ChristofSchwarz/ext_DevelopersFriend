@@ -6,10 +6,9 @@ define([], function () {
     function leonardoMsg(ownId, title, detail, ok, cancel, inverse) {
         //=========================================================================================
         // This html was found on https://qlik-oss.github.io/leonardo-ui/dialog.html
+        if ($('#msgparent_' + ownId).length > 0) $('#msgparent_' + ownId).remove();
 
-        var node = document.createElement("div");
-        node.id = "msgparent_" + ownId;
-        var html =
+        var html = '<div id="msgparent_' + ownId + '">' +
             '  <div class="lui-modal-background"></div>' +
             '  <div class="lui-dialog' + (inverse ? '  lui-dialog--inverse' : '') + '" style="width: 400px;top:80px;">' +
             '    <div class="lui-dialog__header">' +
@@ -22,7 +21,8 @@ define([], function () {
         if (cancel) {
             html +=
                 '  <button class="lui-button  lui-dialog__button' + (inverse ? '  lui-button--inverse' : '') + '" ' +
-                '   onclick="var elem=document.getElementById(\'msgparent_' + ownId + '\');elem.parentNode.removeChild(elem);">' +
+                '   onclick="$(\'#msgparent_' + ownId + '\').remove();">' +
+                //'   onclick="var elem=document.getElementById(\'msgparent_' + ownId + '\');elem.parentNode.removeChild(elem);">' +
                 cancel +
                 ' </button>'
         }
@@ -34,9 +34,10 @@ define([], function () {
         };
         html +=
             '     </div>' +
-            '  </div>';
-        node.innerHTML = html;
-        document.getElementById("qs-page-container").append(node);
+            '  </div>' +
+            '</div>';
+
+        $("#qs-page-container").append(html);
     }
 
     //=============================================================================================
@@ -63,10 +64,11 @@ define([], function () {
             console.log('$.ajax request', args);
             result = await $.ajax(args);
             console.log('$.ajax response', result);
-            return result;
+            return result || ''; // return empty string instead of undefined
         } catch (error) {
             leonardoMsg(ownId, 'Error', error.status + ' ' + error.responseText, null, 'Close', true);
             console.log('error', error.status + ' ' + error.responseText);
+			return ({"error": true, "info": error});
         }
     }
 
@@ -81,62 +83,76 @@ define([], function () {
         btnClick1: async function ($, ownId, app, layout, vproxy, httpHeader) {
             //=========================================================================================
             var btnBefore = $('#btn1_' + ownId).html();
-            $('#btn1_' + ownId).text('Reloading...').prop('disabled', true);
+            $('#btn1_' + ownId).prop('disabled', true)
+                .html('<span id="' + ownId + '_rldstat"><span class="lui-icon  lui-icon--reload developersFriend-rotate"></span> ...</span>');
             try {
-                // var httpHeader = {};
-                // httpHeader[layout.hdrkey] = layout.hdrval;
-                await doAjax('POST', vproxy + '/qrs/app/' + app.id + '/reload', ownId, httpHeader);
 
-                leonardoMsg(ownId, 'Info',
-                    'Reload is executing in the background.<hr />'
-                    + 'Status: <span id="' + ownId + '_rldstat">...</span>'
-                    , 'Close', null, false);
+				var timer;
+				var watchThisTask;
+				// text codes for the statuses
+				var statusList = [
+					'0', '1',
+					'<span class="lui-icon  lui-icon--reload developersFriend-rotate"></span> Running',
+					'3', '4', '5', '6',
+					'<span class="lui-icon  lui-icon--tick"></span> Finished',
+					'<span class="lui-icon  lui-icon--warning"></span> Failed'
+				];	
 
-                var timer;
-                var watchThisTask;
-                $('#msgok_' + ownId).on('click', function () {
-                    clearInterval(timer);
-                    $('#msgparent_' + ownId).remove();
-                });
+				function checkTaskProgress(watchThisTask, startTimer) {
+					var timeSince = Math.round((Date.now() - startTimer) / 1000);
+					timeSince = (timeSince > 59 ? Math.floor(timeSince / 60) : 0) + ':' + ('0' + (timeSince % 60)).slice(-2);
+					//$('#' + ownId + '_rldstat').text('getting warm');
+					doAjax('GET', vproxy + "/qrs/reloadtask/" + watchThisTask, ownId, httpHeader)
+						.then(function (task) {
+							if (task.operational && task.operational.lastExecutionResult) {
+								var status = task.operational.lastExecutionResult.status;
+								if (statusList[status]) status = statusList[status];
+								$('#' + ownId + '_rldstat').html(status + ' (' + timeSince + ')');
+								if (task.operational.lastExecutionResult.duration > 0) {
+									clearInterval(timer);
+									console.log('Reload Task finished.');
+									$('#btn1_' + ownId).prop('disabled', false);
+								}
+							}
+						});
+				}
+					
+				if(layout.pReloadOwn == true || layout.pReloadOwn == undefined) {
+				
+				    // reload button should trigger reload of the current app
+					await doAjax('POST', vproxy + '/qrs/app/' + app.id + '/reload', ownId, httpHeader);
 
+					// get list of "Manually" tasks for this app
+					var tasks = await doAjax('GET', vproxy +
+						"/qrs/reloadtask?filter=name sw 'Manually' and app.id eq " + app.id
+						, ownId, httpHeader);
+					//var startTimer = Date.now();
+					if (tasks.length == 1) {
+						watchThisTask = tasks[0].id;
+						timer = setInterval(checkTaskProgress, 3000, watchThisTask, Date.now());
+					} else if (tasks.length > 1) {
+						$('#' + ownId + '_rldstat').text('Cannot check status.');
+					} else {
+						$('#btn1_' + ownId).html(btnBefore);
+						$('#btn1_' + ownId).html(btnBefore).prop('disabled', '');
+					}
+				
+				} else {
 
-                // get list of "Manually" tasks for this app
-                var tasks = await doAjax('GET', vproxy +
-                    "/qrs/reloadtask?filter=name sw 'Manually' and app.id eq " + app.id
-                    , ownId, httpHeader);
-                var startTimer = Date.now();
-                if (tasks.length == 1) {
-                    watchThisTask = tasks[0].id;
-                    timer = setInterval(checkTaskProgress, 3000, watchThisTask);
-                } else {
-                    $('#' + ownId + '_rldstat').text('multiple tasks found, cannot check status.');
-                }
-                // text codes for the statuses
-                var statusList = ('0;1;<reload> Running;3;4;5;6;<tick> Finished;<warning> Failed')
-                    .replace(/</g, '<span class="lui-icon  lui-icon--').replace(/>/g, '"></span>').split(';');
+					// reload button should trigger a specific task (even when not for the current app)
+					watchThisTask = layout.pTaskId;
+					var taskStart = await doAjax('POST', vproxy + '/qrs/task/start/many', ownId, httpHeader, '["' + layout.pTaskId + '"]');
+					console.log('taskStart',taskStart);
+					if (!taskStart.error) {
+						timer = setInterval(checkTaskProgress, 3000, watchThisTask, Date.now());
+					} else {
+						$('#btn1_' + ownId).html(btnBefore);
+						$('#btn1_' + ownId).html(btnBefore).prop('disabled', '');
+					}
+				}
 
-                function checkTaskProgress(watchThisTask) {
-                    var timeSince = Math.round((Date.now() - startTimer) / 1000);
-                    timeSince = (timeSince > 59 ? Math.floor(timeSince / 60) : 0) + ':' + ('0' + (timeSince % 60)).slice(-2);
-                    $('#' + ownId + '_rldstat').text('');
-                    doAjax('GET', vproxy + "/qrs/reloadtask/" + watchThisTask, ownId, httpHeader)
-                        .then(function (task) {
-                            if (task.operational && task.operational.lastExecutionResult) {
-                                var status = task.operational.lastExecutionResult.status;
-                                if (statusList[status]) status = statusList[status];
-                                $('#' + ownId + '_rldstat').html(status + ' (' + timeSince + ')');
-                                if (task.operational.lastExecutionResult.duration > 0) {
-                                    clearInterval(timer);
-                                    console.log('Reload Task finished:');
-                                }
-                            }
-                        });
-                }
-
-
-                $('#btn1_' + ownId).html(btnBefore).prop('disabled', false);
             } catch (error) {
-                leonardoMsg(ownId, 'Error', error, null, 'Close', true);
+                leonardoMsg(ownId, 'Error 145', error, null, 'Close', true);
             }
         },
 
@@ -159,7 +175,7 @@ define([], function () {
                 }
                 leonardoMsg(ownId, 'Confirm app replacement',
                     'Really want to replace design of app <a href="' + location.href.split('/app')[0] + '/app/' + layout.pTargetAppId
-                    + '">' + targetAppInfo[0].name + '</a>?<br/>'
+                    + '" target="_blank">' + targetAppInfo[0].name + '</a>?<br/>'
                     + (targetAppInfo[0].stream ? ('The app is published in stream "' + targetAppInfo[0].stream.name + '"') : 'The app is not published.')
                     + '<br/>Owner is: ' + targetAppInfo[0].owner.userDirectory + '\\' + targetAppInfo[0].owner.userId,
                     'Ok', 'Cancel'
@@ -372,6 +388,79 @@ define([], function () {
             } catch (error) {
                 leonardoMsg(ownId, 'Error', JSON.stringify(error), null, 'Close', true);
             }
+        },
+
+        //=============================================================================================
+        btnClick5: async function ($, ownId, app, layout, vproxy, httpHeader) {
+            //=========================================================================================
+			console.log(layout);
+            var btnBefore = $('#btn5_' + ownId).html();
+            $('#btn5_' + ownId).text('Saving...').prop('disabled', true);
+            var objId;
+            var args = {
+                timeout: 0,
+                method: 'GET',
+                url: '../extensions/developersfriend/',
+                headers: httpHeader
+            };
+            var settingsTxt;
+            const libOrExt1 = 'extension';  // 'contentlibrary'
+            const libOrExt2 = (libOrExt1 + 's').replace('library', '');
+            const libOrExtName = layout.pMapExtension; //'mappings'
+            const settingsFile = layout.pMapFilename; //'productnames.css';
+            //const maxSelections = 50;
+            const enigma = app.model.enigmaModel;
+			var addUser = "";
+			var keyFields = layout.pMapKeyVals.split('\n');
+			var html = '';
+			const settings = $.ajax({ type: 'GET', url: `../${libOrExt2}/${libOrExtName}/${settingsFile}`, async: false });
+            if (settings.status != '200') {
+				leonardoMsg(ownId, 'Error', `File ${settingsFile} doesn't exist in ${libOrExt1} ${libOrExtName}. Please <a 
+				href="../dev-hub/extension-editor/#qext{${libOrExtName}}" target="_blank">create it first</a>.`, null, 'Close', false);
+			} else if (layout.pMapCondition != -1) {
+                leonardoMsg(ownId, 'Error', layout.pMapMessage, null, 'Close', false);
+            } else {
+                settingsTxt = settings.responseText;
+                layout.pMapWriteFields.forEach(function(fieldSettings, i){
+					html += html.length > 0 ? '<hr/>' : '';
+					html += `<label for=""i${i}${ownId}">${fieldSettings.label}</label><br/>`;
+					html += `<input type="text" id="i${i}${ownId}" list="vals${i}${ownId}" style="width:100%;" value="${fieldSettings.mapFieldDefault}"></input>`;
+					html += `<datalist id="vals${i}${ownId}">`;
+					fieldSettings.mapFieldOptions.split('\n').forEach(function (opt) {
+						html += `<option>${opt}</option>`;
+					});
+					html += `</datalist>`;
+				});
+                
+				leonardoMsg(ownId, `Mapping for ${keyFields.length} keys
+				<span class="lui-icon  lui-icon--info" title="${layout.pMapKeyVals}"></span>`, html, 'OK', 'Close', false);
+				
+                $('#msgok_' + ownId).on("click", async function () {
+				    var newLines = ''
+                    var newVals = '';
+					if (layout.pMapAddUsername) {
+						addUser = await enigma.evaluate("',' & TextBetween(OSUser(),'Directory=',';') & '\\' & SubField(OSUser(),'UserId=',2) & ',' & TimeStamp(Now(),'YYYYMMDD hhmmss')");
+					}
+					layout.pMapWriteFields.forEach(function(fieldSettings, i){
+					   newVals += ',"' + $('#i' + i + ownId).val().replace(/"/g, '""') + '"';
+					});
+					newVals += addUser;
+					
+                    // Add new lines to the settings-file
+                    
+                    layout.pMapKeyVals.split('\n').forEach(function (keyVal, i) {
+                        newLines += '\n"' + keyVal.replace(/"/g, '""') + '"' + (i>=1 && layout.pSaveSpace ? (',¶' + (layout.pMapAddUsername ? ',¶,¶' : '')) : newVals);
+                    });
+
+                   const res1 = await doAjax('POST', `${vproxy}/qrs/${libOrExt1}/${libOrExtName}/uploadfile`
+                        + `?externalpath=${settingsFile}&overwrite=true`, ownId, httpHeader, settingsTxt+newLines);
+
+                    leonardoMsg(ownId, 'Success', `Saved to <a href="../${libOrExt2}/${libOrExtName}/${settingsFile}" target="_blank">${res1}</a>
+					    <br/><br/><p style="overflow-y:scroll;height:250px;width:800px;">${newLines.replace(/\n/g,'<br/>')}</p>`
+                        , null, 'Close', false);
+                });
+            }
+            $('#btn5_' + ownId).html(btnBefore).prop('disabled', false);
         }
     };
 });

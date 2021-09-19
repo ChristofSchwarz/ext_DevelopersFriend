@@ -1,11 +1,29 @@
 define(["qlik", "jquery", "text!./style.css", "./functions", "./props"],
     function (qlik, $, cssContent, functions, props) {
+	    const hideAd = true;  // show or hide the "by data/\bridge" text 
+		
         'use strict';
-        const databridgeHubUrl = '../extensions/databridge/hub.html';
+        var sess = {
+            databridgeHubUrl: '../extensions/databridge/hub.html',
+			baseUrl: location.href.indexOf('/sense/app') > -1 ? location.href.split('/sense/app')[0] : location.href.split('/single')[0],
+			xrfkey: Math.random().toString().substr(2).repeat(16).substr(0, 16)
+        };
+        // find out if this site also has the data/\bridge Hub mashup installed
+        $.ajax({
+            type: "HEAD",
+            url: sess.databridgeHubUrl,
+            success: function (returnData) {sess.hasDatabridgeHub = true; },
+            error: function (xhr, status, error) { sess.hasDatabridgeHub = false; }
+        });
 
         $("<style>").html(cssContent).appendTo("head");
 
         return {
+			initialProperties: {
+				showTitles: false,
+				disableNavMenu: true
+			},
+			
             definition: {
                 type: "items",
                 component: "accordion",
@@ -18,11 +36,12 @@ define(["qlik", "jquery", "text!./style.css", "./functions", "./props"],
                         type: 'items',
                         component: 'expandable-items',
                         items: [
-                            props.qrsSettings(qlik),
+                            props.qrsSettings(qlik, sess),
                             props.button1(qlik),
-                            props.button2(qlik, databridgeHubUrl),
+                            props.button2(qlik, sess),
                             props.button3(qlik),
                             props.button4(qlik),
+							props.button5(qlik),
                             props.presentation(qlik)
                         ]
                     },
@@ -41,36 +60,104 @@ define(["qlik", "jquery", "text!./style.css", "./functions", "./props"],
 
             paint: async function ($element, layout) {
 
-                // const info = $.getJSON('../extensions/DevelopersFriend/DevelopersFriend.qext', function(json){
-                // 	console.log(json.version);
-                // });
-
-
-                //console.log(layout);
+                //console.log('layout', layout);
                 var self = this;
                 var ownId = this.options.id;
                 var app = qlik.currApp(this);
                 var global = qlik.getGlobal();
-                var qrsAppInfo;
-                var vproxy;
+                //var qrsAppInfo;
+                //var vproxy;
+                
                 if (layout.pViaVproxy)
-                    vproxy = '/' + layout.vproxy
+                    sess.vproxy = '/' + layout.vproxy
                 else
-                    vproxy = location.href.split(location.hostname)[1]
+                    sess.vproxy = location.href.split(location.hostname)[1]
                         .split(location.href.indexOf('/sense/app') > -1 ? '/sense/app' : '/single')[0];
-                console.log('Virtual Proxy for QRS Calls:', vproxy)
+						
+                console.log("Session Settings Developer's Friend", sess);
+                
+				$.ajax({
+					type: "GET",
+					url: sess.databridgeHubUrl,
+					success: function (returnData) {sess.hasDatabridgeHub = true; },
+					error: function (xhr, status, error) { sess.hasDatabridgeHub = false; }
+				});
+				
+				
+				function buttonHTML(id) {
+					
+                    if (id == 1) {
+                        return (layout.pIconTxt.indexOf('i') > -1 ? '<span class="lui-icon__icon lui-icon lui-icon--reload"></span>&nbsp;' : '')
+                            + (layout.pIconTxt.indexOf('t') > -1 ? layout.pBtnLabel1 : '') 
+                    } else if (id == 2) {
+                        return (layout.pIconTxt.indexOf('i') > -1 ? '<span class="lui-icon__icon lui-icon lui-icon--upload"></span>&nbsp;' : '')
+                            + (layout.pIconTxt.indexOf('t') > -1 ? layout.pBtnLabel2 : '') 
+                    } else if (id == 3) {
+                        return (layout.pIconTxt.indexOf('i') > -1 ? '<span class="lui-icon__icon lui-icon lui-icon--cogwheel"></span>&nbsp;' : '')
+                            + (layout.pIconTxt.indexOf('t') > -1 ? layout.pBtnLabel3 : '')
+                    } else if (id == 4) {
+                        return (layout.pIconTxt.indexOf('i') > -1 ? '<span class="lui-icon__icon lui-icon lui-icon--export"></span>&nbsp;' : '')
+                            + (layout.pIconTxt.indexOf('t') > -1 ? layout.pBtnLabel4 : '')
+                    } else if (id == 5) {
+                        return (layout.pIconTxt.indexOf('i') > -1 ? '<span class="lui-icon__icon lui-icon lui-icon--direct-discovery"></span>&nbsp;' : '')
+                            + (layout.pIconTxt.indexOf('t') > -1 ? layout.pBtnLabel5 : '')
+                    } else {
+						return 'invalid id in function buttonHTML'
+					}
+                };
 
-                var html = '<div class="developersFriend-welcome">Developer\'s Friend by '
+				
+                var html = hideAd ? '' : (
+					'<div class="developersFriend-welcome">Developer\'s Friend by '
                     + '<a href="https://www.databridge.ch" target="_blank" style="color:#0A2C4D;font-weight:bold;" >'
-                    + 'data<span style="color:#F0C131;">/\\</span>bridge</a></div>';
-                html += '<div id="msg_' + ownId + '" style="color:red;"></div>';
+                    + 'data<span style="color:#F0C131;">/\\</span>bridge</a></div>'
+				);
+				html += '<div id="formulaWarning_' + ownId + '" style="color:red; display:none;">Please edit the condition formula, press the <b><i>fx</i></b> button</div>'
+                    + '<div id="button_parent_' + ownId + '">'
+					+ '<button id="btn1_' + ownId + '" class="lui-button developersFriend-ellipsis" style="display:none;" />' + buttonHTML(1) + '</button>'
+					+ '<button id="btn2_' + ownId + '" class="lui-button developersFriend-ellipsis" style="display:none;" />' + buttonHTML(2) + '</button>'
+					+ '<button id="btn3_' + ownId + '" class="lui-button developersFriend-ellipsis" style="display:none;" />' + buttonHTML(3) + '</button>'
+					+ '<button id="btn4_' + ownId + '" class="lui-button developersFriend-ellipsis" style="display:none;" />' + buttonHTML(4) + '</button>'
+					+ '<button id="btn5_' + ownId + '" class="lui-button developersFriend-ellipsis" style="display:none;" />' + buttonHTML(5) + '</button>'
+                    + '</div>';
+					
+                if ($element.html() == "") {
+					$element.html(html);
+					// Functionality of RELOAD button
+					$("#btn1_" + ownId).on("click", function () {
+						console.log('Reload button clicked.');
+						functions.btnClick1($, ownId, app, layout, sess.vproxy, httpHeader);
+					});
+					// Functionality of REPLACE button
+					$("#btn2_" + ownId).on("click", async function () {
+						console.log("Button2 clicked.");
+						functions.btnClick2($, ownId, app, layout, sess.vproxy, httpHeader, sess.databridgeHubUrl); //, global);
+					});
+					// Functionality of STREAM button
+					$("#btn3_" + ownId).on("click", async function () {
+						functions.btnClick3($, ownId, app, layout, sess.vproxy, httpHeader);
+					});
+					// Functionality of EXPORT button
+					$("#btn4_" + ownId).on("click", function () {
+						console.log('Button4 clicked.');
+						functions.btnClick4($, ownId, app, layout, sess.vproxy, httpHeader);
+					});
+					// Functionality of MAPPING button
+					$("#btn5_" + ownId).on("click", function () {
+						console.log('Button5 clicked.');
+						functions.btnClick5($, ownId, app, layout, sess.vproxy, httpHeader);
+					});
+				}
+				
+				// updating the elements without repainting entire extension html
+				$('#button_parent_' + ownId + ' button').css('width', layout.pBtnWidth + "%");
+
 
                 if (layout.pCBshowIfFormula == true && layout.pShowCondition.substr(0, 1) == '=') {
-                    html += '<div style="color:red;">Please edit the condition formula, press the <b><i>fx</i></b> button</div>';
+                    $('#formulaWarning_' + ownId).show();
+                } else {
+                    $('#formulaWarning_' + ownId).hide();
                 }
-                // if (layout.pCBkeepData == true) {
-                //     html += '<div id="connErr_' + ownId + '" style="color:red;display:none;">Invalid Data Connection name.</div>';
-                // }
 
                 //var localEnigma = app.model.enigmaModel;
 
@@ -84,115 +171,87 @@ define(["qlik", "jquery", "text!./style.css", "./functions", "./props"],
                 var renderBtn1 = layout.pCBreload;
                 if (layout.pCBshowIfFormula)
                     if (layout.pShowCondition == 0) renderBtn1 = false;
-                var hideBtn1 = layout.pCBhideIfPublic;
 
                 if (renderBtn1) {
-                    html += '<button id="btn1_' + ownId + '" class="lui-button developersFriend-ellipsis" style="width:' + layout.pBtnWidth + '%;color:'
-                        + (layout.pTxtColor1.color ? layout.pTxtColor1.color : layout.pTxtColor1)
-                        + ';background-color:' + (layout.pBgColor1.color ? layout.pBgColor1.color : layout.pBgColor1) + ';'
-                        + (hideBtn1 ? 'display:none' : '') + '">'
-                        + (layout.pIconTxt.indexOf('i') > -1 ? '<span class="lui-icon__icon lui-icon lui-icon--reload"></span>&nbsp;' : '')
-                        + (layout.pIconTxt.indexOf('t') > -1 ? layout.pBtnLabel1 : '') + '</button>';
+                    $('#btn1_' + ownId).show();
+					$('#btn1_' + ownId).css('color', layout.pTxtColor1.color ? layout.pTxtColor1.color : layout.pTxtColor1);
+					$('#btn1_' + ownId).css('background-color', layout.pBgColor1.color ? layout.pBgColor1.color : layout.pBgColor1);
+					setTimeout(function () {
+                        $('#btn1_' + ownId).html(buttonHTML(1));
+                    }, $('#btn1_' + ownId).text().match(/(\([0-9]|\.\.\.)/) ? 6000 : 1); 
+					// if the button text contains " (#" or "..." wait 6s before returning to default. This is because the reload 
+					// was clicked before and the text in the button was used for update info of reloads
+                   
+                } else {
+                    $('#btn1_' + ownId).hide();
                 }
 
                 var renderBtn2 = layout.pCBreplace;
                 if (app.id.toUpperCase() == layout.pTargetAppId.toUpperCase()) renderBtn2 = false;
                 if (renderBtn2) {
-                    html += '<button id="btn2_' + ownId + '" class="lui-button developersFriend-ellipsis" style="width:' + layout.pBtnWidth + '%;color:'
-                        + (layout.pTxtColor2.color ? layout.pTxtColor2.color : layout.pTxtColor2)
-                        + ';background-color:' + (layout.pBgColor2.color ? layout.pBgColor2.color : layout.pBgColor2) + ';">'
-                        + (layout.pIconTxt.indexOf('i') > -1 ? '<span class="lui-icon__icon lui-icon lui-icon--upload"></span>&nbsp;' : '')
-                        + (layout.pIconTxt.indexOf('t') > -1 ? layout.pBtnLabel2 : '') + '</button>';
+                    $('#btn2_' + ownId).show();
+					$('#btn2_' + ownId).css('color', layout.pTxtColor2.color ? layout.pTxtColor2.color : layout.pTxtColor2);
+					$('#btn2_' + ownId).css('background-color', layout.pBgColor2.color ? layout.pBgColor2.color : layout.pBgColor2);
+					$('#btn2_' + ownId).html(buttonHTML(2));
+                } else {
+                    $('#btn2_' + ownId).hide();
                 }
 
                 var renderBtn3 = layout.pCBstream;
                 if (renderBtn3) {
-                    html += '<button id="btn3_' + ownId + '" class="lui-button developersFriend-ellipsis" style="width:' + layout.pBtnWidth + '%;color:'
-                        + (layout.pTxtColor3.color ? layout.pTxtColor3.color : layout.pTxtColor3)
-                        + ';background-color:' + (layout.pBgColor3.color ? layout.pBgColor3.color : layout.pBgColor3) + ';">'
-                        + (layout.pIconTxt.indexOf('i') > -1 ? '<span class="lui-icon__icon lui-icon lui-icon--cogwheel"></span>&nbsp;' : '')
-                        + (layout.pIconTxt.indexOf('t') > -1 ? layout.pBtnLabel3 : '') + '</button>';
+                    $('#btn3_' + ownId).show();
+					$('#btn3_' + ownId).css('color', layout.pTxtColor2.color ? layout.pTxtColor3.color : layout.pTxtColor3);
+					$('#btn3_' + ownId).css('background-color', layout.pBgColor3.color ? layout.pBgColor3.color : layout.pBgColor3);
+					$('#btn3_' + ownId).html(buttonHTML(3));
+                } else {
+                    $('#btn3_' + ownId).hide();
                 }
 
                 var renderBtn4 = layout.pCBexport;
                 if (renderBtn4) {
-                    html += '<button id="btn4_' + ownId + '" class="lui-button developersFriend-ellipsis" style="width:' + layout.pBtnWidth + '%;color:'
-                        + (layout.pTxtColor4.color ? layout.pTxtColor4.color : layout.pTxtColor4) +
-                        + ';background-color:' + (layout.pBgColor4.color ? layout.pBgColor4.color : layout.pBgColor4) + ';">'
-                        + (layout.pIconTxt.indexOf('i') > -1 ? '<span class="lui-icon__icon lui-icon lui-icon--export"></span>&nbsp;' : '')
-                        + (layout.pIconTxt.indexOf('t') > -1 ? layout.pBtnLabel4 : '') + '</button>';
+                    $('#btn4_' + ownId).show();
+					$('#btn4_' + ownId).css('color', layout.pTxtColor4.color ? layout.pTxtColor4.color : layout.pTxtColor4);
+					$('#btn4_' + ownId).css('background-color', layout.pBgColor4.color ? layout.pBgColor4.color : layout.pBgColor4);
+					$('#btn4_' + ownId).html(buttonHTML(4));
+                } else {
+                    $('#btn4_' + ownId).hide();
                 }
 
-                $element.html(html);
-
-                // Functionality of RELOAD button
-
-                $element.find("#btn1_" + ownId).on("click", function () {
-                    console.log('Button1 clicked.');
-                    functions.btnClick1($, ownId, app, layout, vproxy, httpHeader);
-                });
-
-                // Functionality of REPLACE button
-                // if this sense environment hasn't got the Databridge Hub, disable the button
-                if (layout.pUseDBHub) {
-                    var hasDBHub = $.ajax({ type: "HEAD", url: databridgeHubUrl, async: false });
-                    if (hasDBHub.status != 200) $('#btn2_' + ownId).attr('disabled', true);
+                var renderBtn5 = layout.pCBmappings;
+                if (renderBtn5) {
+                    $('#btn5_' + ownId).show();
+					$('#btn5_' + ownId).css('color', layout.pTxtColor5.color ? layout.pTxtColor5.color : layout.pTxtColor5);
+					$('#btn5_' + ownId).css('background-color', layout.pBgColor5.color ? layout.pBgColor5.color : layout.pBgColor5);
+					$('#btn5_' + ownId).html(buttonHTML(5));
+                } else {
+                    $('#btn5_' + ownId).hide();
                 }
-                $element.find("#btn2_" + ownId).on("click", async function () {
-                    console.log("Button2 clicked.");
-                    functions.btnClick2($, ownId, app, layout, vproxy, httpHeader, databridgeHubUrl); //, global);
-                });
-
-                // Functionality of STREAM button
-
-                $element.find("#btn3_" + ownId).on("click", async function () {
-                    functions.btnClick3($, ownId, app, layout, vproxy, httpHeader);
-                });
-
-
-                // Functionality of EXPORT button
-
-                $element.find("#btn4_" + ownId).on("click", function () {
-                    console.log('Button4 clicked.');
-                    functions.btnClick4($, ownId, app, layout, vproxy, httpHeader);
-                });
-
-
+				
+				if (!sess.user) {
+					$.ajax({
+						type: "GET",
+						url: sess.baseUrl + '/qps/user?xrfkey=' + sess.xrfkey,
+						header: {"X-Qlik-Xrfkey": sess.xrfkey},
+						success: function(res){ console.log('QPS user info', res); sess.user = res },
+						error: function (xhr, status, error) { console.log('QPS user info failed', error);}
+					})			
+				}
                 // Checking the Extension Settings about Virtual Proxy / QRS API access
 
                 $.ajax({
                     method: 'GET',
-                    url: vproxy + '/qrs/app?filter=id eq ' + app.id + '&xrfkey=' + randomKey,
-                    headers: httpHeader
-                }).done(function (response, textStatus, xhr) {
-                    //console.log('Response of: '+reqSettings.method+' '+reqSettings.url+':', response, textStatus, xhr);				
-                    if (xhr.status == 200 && xhr.responseText.length > 2) {
-                        $('#msg_' + ownId).text('');  // clear the message
-
-                        qrsAppInfo = xhr.responseJSON;
-                        //console.log('Info about own app from QRS: ',qrsAppInfo);
-                        // if this is a published app and if the option is to show the button also published apps, disable the display:none
-                        if (qrsAppInfo[0])
-                            if (layout.pCBhideIfPublic)
-                                if (qrsAppInfo[0].stream == null) {
-                                    $("#btn1_" + ownId).css('display', '');
-                                };
-                        // if (layout.pCBkeepData == true) {
-                        //     $.ajax({
-                        //         method: 'GET',
-                        //         url: vproxy + "/qrs/dataconnection/count?filter=name eq '" + layout.pDataConn + "'&xrfkey=" + randomKey,
-                        //         headers: httpHeader
-                        //     }).done(function (response, textStatus, xhr) {
-                        //         if (response.value != 1) $("#connErr_" + ownId).css('display', ''); // unhide the connection ErrorMsg
-                        //     });
-                        // }
-                    } else {
-                        $('#msg_' + ownId).text(layout.pViaVproxy ? 'Invalid Vproxy settings.' : 'Insufficient admin roles.');
-                    }
-                }).catch(function (err) {
-                    $('#msg_' + ownId).text(layout.pViaVproxy ? 'Invalid Vproxy settings.' : 'Insufficient admin roles.');
-                });
-
+                    url: sess.vproxy + '/qrs/app?filter=id eq ' + app.id + '&xrfkey=' + randomKey,
+                    headers: httpHeader,
+					success: function(res){
+						console.log('Success: QRS API is talking to you on ' + sess.vproxy + '/qrs');
+						sess.qrsAppInfo = res[0];
+						if (sess.qrsAppInfo && layout.pCBhideIfPublic && sess.qrsAppInfo.stream != null) $("#btn1_" + ownId).hide();
+						},
+					error: function (xhr, status, error) { 
+						console.log(sess.vproxy + '/qrs/app call failed', error); 
+						}
+                })
+				
                 return qlik.Promise.resolve();
             }
         };
