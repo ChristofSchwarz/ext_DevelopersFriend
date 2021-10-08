@@ -9,7 +9,7 @@
 define(["./functions"], function (functions) {
     return {
 
-        qrsSettings: function (qlik, sess) {
+        qrsSettings: function (qlik) {
             return {
                 label: 'Access to QRS API',
                 type: 'items',
@@ -54,38 +54,48 @@ define(["./functions"], function (functions) {
                 }, {
                     label: "Test settings ...",
                     component: "button",
-                    action: function (layout) {
-                        console.log('Session info', sess);
-                        var httpHeaders = { "X-Qlik-XrfKey": sess.xrfkey };
+                    action: async function (data) {
+                        var app = qlik.currApp();
+                        var enigma = app.model.enigmaModel;
+                        var baseUrl = location.href.indexOf('/sense/app') > -1 ? location.href.split('/sense/app')[0] : location.href.split('/single')[0];
+                        var xrfkey = 'testconnection99'
+
+                        console.log('via Virtual Proxy?', data.pViaVproxy);
+                        var vproxy = data.vproxy;
+                        if (data.vproxy.qStringExpression) vproxy = await enigma.evaluate(data.vproxy.qStringExpression.qExpr);
+                        var hdrkey = data.hdrkey;
+                        if (data.hdrkey.qStringExpression) hdrkey = await enigma.evaluate(data.hdrkey.qStringExpression.qExpr);
+                        var hdrval = data.hdrval;
+                        if (data.hdrval.qStringExpression) hdrval = await enigma.evaluate(data.hdrval.qStringExpression.qExpr);
+                        console.log('Virtual Proxy', vproxy);
+                        console.log('Header Key', hdrkey);
+                        console.log('Header Value', hdrval);
+
+                        var httpHeaders = { "X-Qlik-XrfKey": xrfkey };
                         var url
-                        if (layout.pViaVproxy) {
-							url = '/' + layout.vproxy + "/qrs/user/full?filter=userId eq '" + layout.hdrval + "'" // ?filter=prefix eq '" + layout.vproxy + "'";
-                            //url = '/' + layout.vproxy + "/qrs/virtualproxyconfig" // ?filter=prefix eq '" + layout.vproxy + "'";
-                            httpHeaders[layout.hdrkey] = layout.hdrval;
+                        if (data.pViaVproxy) {
+                            url = '/' + vproxy + "/qrs/about"
+                            //url = '/' + vproxy + "/qrs/user/full?filter=userId eq '" + hdrval + "'" 
+                            //url = '/' + vproxy + "/qrs/virtualproxyconfig" // ?filter=prefix eq '" + vproxy + "'";
+                            httpHeaders[hdrkey] = hdrval;
                         } else {
-                            url = sess.baseUrl + "/qrs/user/full?filter=userId eq '" + sess.user.userId + "' and userDirectory eq '" + sess.user.userDirectory + "'"
+                            url = baseUrl + "/qrs/about"
+                            //url = sess.baseUrl + "/qrs/user/full?filter=userId eq '" + sess.user.userId + "' and userDirectory eq '" + sess.user.userDirectory + "'"
                         }
                         $.ajax({
                             method: 'GET',
-                            url: url + (url.indexOf('?') == -1 ? '?' : '&') + "xrfkey=" + sess.xrfkey,
+                            url: url + (url.indexOf('?') == -1 ? '?' : '&') + "xrfkey=" + xrfkey,
                             headers: httpHeaders,
                             success: function (res) {
                                 //alert('Success: QRS API is talking to you.'); 
                                 console.log('QRS API replied on ' + url, res);
-								const user = res[0];
-                                if (JSON.stringify(res).length > 2) {
-                                    functions.leonardoMsg(sess.xrfkey, 'Success',
-                                        'QRS API will be called as user <b>' + user.userDirectory + '\\' + user.userId 
-										+ '</b> who has the following roles: ' + JSON.stringify(user.roles), null, 'Close', false);
-                                } else {
-                                    functions.leonardoMsg(sess.xrfkey, 'Problem',
-                                        'QRS API is not responding as expected. The user <b>' + layout.hdrval 
-										+ '</b> did not exist.', null, 'Close', false);
-                                }
-							},
+                                functions.leonardoMsg(xrfkey, 'Success',
+                                    'QRS API connected at ' + url + '<br/>buildVersion: ' + res.buildVersion
+                                    + '<br/>buildDate: ' + res.buildDate, null, 'Close', false);
+                            },
                             error: function (xhr, status, error) {
                                 //alert('Connection to QRS API don\'t work.'); 
-                                functions.leonardoMsg(sess.xrfkey, 'Error',
+                                functions.leonardoMsg(xrfkey, 'Error',
                                     'The connection to QRS API does\'t work with these settings.', null, 'Close', true);
                             }
                         })
@@ -116,7 +126,7 @@ define(["./functions"], function (functions) {
                     ref: 'pBtnLabel1',
                     defaultValue: 'Reload',
                     show: function (data) { return data.pCBreload }
-                },{
+                }, {
                     type: "boolean",
                     component: "switch",
                     label: "Reload Task",
@@ -129,13 +139,13 @@ define(["./functions"], function (functions) {
                         label: "Specific app (specify task)"
                     }],
                     defaultValue: true
-                },{
-					label: 'Task ID to trigger',
-					type: 'string',
-					ref: 'pTaskId',
-					expression: 'optional',
-					show: function (data) { return data.pCBreload && !data.pReloadOwn }
-				}, {
+                }, {
+                    label: 'Task ID to trigger',
+                    type: 'string',
+                    ref: 'pTaskId',
+                    expression: 'optional',
+                    show: function (data) { return data.pCBreload && !data.pReloadOwn }
+                }, {
                     label: 'Hide within published apps',
                     type: 'boolean',
                     ref: 'pCBhideIfPublic',
@@ -176,7 +186,7 @@ define(["./functions"], function (functions) {
             }
         },
 
-        button2: function (qlik, sess) {
+        button2: function (qlik, sessi) {
             //var hasDatabridgeHub = $.ajax({ type: "HEAD", url: databridgeHubUrl, async: false });
 
             return {
@@ -221,35 +231,35 @@ define(["./functions"], function (functions) {
                 }, {
                     label: "You don't have Databridge Hub installed.",
                     component: "text",
-                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sess.hasDatabridgeHub : false) }
+                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sessi.hasDatabridgeHub : false) }
                 }, {
                     label: 'Get it free from Github',
                     component: "link",
                     url: 'https://github.com/ChristofSchwarz/db_mash_databridgehub',
-                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sess.hasDatabridgeHub : false) }
+                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sessi.hasDatabridgeHub : false) }
                 }, {
                     label: "Go to Databridge Hub mashup",
                     component: "link",
-                    url: sess.databridgeHubUrl,
-                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sess.hasDatabridgeHub : false) }
+                    url: sessi.databridgeHubUrl,
+                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sessi.hasDatabridgeHub : false) }
                 }, {
                     label: 'Copy Design',
                     type: 'boolean',
                     ref: 'pCopyDesign',
                     defaultValue: true,
-                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sess.hasDatabridgeHub : false) }
+                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sessi.hasDatabridgeHub : false) }
                 }, {
                     label: 'Copy Data',
                     type: 'boolean',
                     ref: 'pCopyData',
                     defaultValue: true,
-                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sess.hasDatabridgeHub : false) }
+                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sessi.hasDatabridgeHub : false) }
                 }, {
                     label: 'Copy Script',
                     type: 'boolean',
                     ref: 'pCopyScript',
                     defaultValue: true,
-                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sess.hasDatabridgeHub : false) }
+                    show: function (layout) { return layout.pCBreplace && (layout.pUseDBHub ? !sessi.hasDatabridgeHub : false) }
                 }, {
                     label: "Text color",
                     component: "color-picker",
@@ -512,12 +522,12 @@ define(["./functions"], function (functions) {
                         return data.pCBmappings == true
                     }
                 }, {
-					label: 'Keys (separate with CHR(10))',
-					type: 'string',
-					expression: 'always',
-					ref: 'pMapKeyVals',
-					defaultValue: '=Concat(DISTINCT product.name, CHR(10))',
-                 }, {
+                    label: 'Keys (separate with CHR(10))',
+                    type: 'string',
+                    expression: 'always',
+                    ref: 'pMapKeyVals',
+                    defaultValue: '=Concat(DISTINCT product.name, CHR(10))',
+                }, {
                     type: "array",
                     ref: "pMapWriteFields", //"listItems",
                     label: "Save field(s)",
@@ -570,7 +580,7 @@ define(["./functions"], function (functions) {
                     show: function (data) {
                         return data.pCBmappings == true
                     }
-                } ,{
+                }, {
                     label: "Save space for repeating rows",
                     ref: "pSaveSpace",
                     type: "boolean",
@@ -578,7 +588,7 @@ define(["./functions"], function (functions) {
                     show: function (data) {
                         return data.pCBmappings == true
                     }
-                },{
+                }, {
                     label: "Text color",
                     component: "color-picker",
                     ref: "pTxtColor5",
