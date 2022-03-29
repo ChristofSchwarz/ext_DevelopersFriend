@@ -185,16 +185,23 @@ define([], function () {
                     'Really want to replace design of app <a href="' + location.href.split('/app')[0] + '/app/' + layout.pTargetAppId
                     + '" target="_blank">' + targetAppInfo[0].name + '</a>?<br/>'
                     + (targetAppInfo[0].stream ? ('The app is published in stream "' + targetAppInfo[0].stream.name + '"') : 'The app is not published.')
-                    + '<br/>Owner is: ' + targetAppInfo[0].owner.userDirectory + '\\' + targetAppInfo[0].owner.userId,
+                    + '<br/>Owner is: ' + targetAppInfo[0].owner.userDirectory + '\\' + targetAppInfo[0].owner.userId
+					+ '<br/><br/><label class="lui-checkbox">'
+					+ '  <input class="lui-checkbox__input" type="checkbox" aria-label="Label" id="' + ownId + '_reloadAfter" />'
+                    + '  <div class="lui-checkbox__check-wrap"><span class="lui-checkbox__check"></span>'
+					+ '  <span class="lui-checkbox__check-text">Trigger reload of target app after refresh.</span></div>'
+					+ '</label>',
                     'Ok', 'Cancel'
                 );
+				
                 document.getElementById('msgok_' + ownId).addEventListener("click", async function (f) {
+				
+					const reloadAfter = $('#' + ownId + '_reloadAfter').is(':checked');
                     $("#msgparent_" + ownId).remove();
-
-
                     $('#btn2_' + ownId).text('Replacing...').prop('disabled', true);
                     try {
-                        var targetAppInfo = await doAjax('PUT', vproxy + '/qrs/app/' + app.id + '/replace?app=' + layout.pTargetAppId, ownId, httpHeader);
+                        const targetAppInfo = await doAjax('PUT', vproxy + '/qrs/app/' + app.id + '/replace?app=' + layout.pTargetAppId, ownId, httpHeader);
+						if (reloadAfter) await doAjax('POST', vproxy + '/qrs/app/' + layout.pTargetAppId + '/reload', ownId, httpHeader);
                         console.log('targetAppInfo', targetAppInfo);
                         $('#btn2_' + ownId).text('Done!');
                         setTimeout(function () {
