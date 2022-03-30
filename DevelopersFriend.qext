@@ -4,12 +4,6 @@
     "description": "Action buttons by data/\\bridge to reload, publish, export this app and more",
     "icon": "person",
     "version": "1.4.3",
-    "changes": {
-        "1.4.0": "Add button <Delete Mappings>",
-		"1.4.1": "Bugfixes on LeonardoMsg box that stayed open",
-		"1.4.2": "Add setting variable after SAVE button",
-		"1.4.3": "add split at char when making mappings"
-    },
     "author": "Christof Schwarz",
     "homepage": "www.databridge.ch",
     "keywords": "qlik-sense, visualization",
