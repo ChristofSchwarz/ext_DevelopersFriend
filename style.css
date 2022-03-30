@@ -1,5 +1,5 @@
 .qv-object-DevelopersFriend div.qv-object-content-container {
-	overflow: auto;
+	/*overflow: auto;*/
 	text-align: center;
 }
 
@@ -22,6 +22,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   margin-bottom: 4px;
+  padding: 0;
 }
 
 /* display logo in the properties "About" section */
@@ -43,4 +44,26 @@ div[tid=aboutSection] div[tid=dbLogo] {
     -webkit-animation-iteration-count: infinite;
     -webkit-animation-timing-function: linear;
     -webkit-transform: rotate(1turn);
+}
+
+.developersFriend-spinner {
+	height:60px;
+	width:60px;
+	margin:0 auto;
+    background-image: url(../extensions/DevelopersFriend/loader.svg);
+    background-size: 100% 100%;
+    animation-name: rotate;
+    animation-duration: 1.5s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    transform: rotate(1turn);
+    -webkit-animation-name: rotate;
+    -webkit-animation-duration: 1.5s;
+    -webkit-animation-iteration-count: infinite;
+    -webkit-animation-timing-function: linear;
+    -webkit-transform: rotate(1turn);
+}
+
+.lui-dialog {
+	font-family: Source Sans Pro,sans-serif;
 }
