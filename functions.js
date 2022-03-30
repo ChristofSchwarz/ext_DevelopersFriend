@@ -199,7 +199,7 @@ define([], function () {
                 var watchThisTask;
                 // text codes for the statuses
                 var statusList = [
-                    '0', '1',
+                    '0', '<span class="lui-icon  lui-icon--history"></span> Queued',
                     '<span class="lui-icon  lui-icon--reload developersFriend-rotate"></span> Running',
                     '3', '4', '5', '6',
                     '<span class="lui-icon  lui-icon--tick"></span> Finished',
