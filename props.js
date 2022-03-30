@@ -110,9 +110,9 @@ define(["./functions"], function (functions) {
             }
         },
 
-        button1: function (qlik) {
+        button1: function (qlik) {   // ---------- reload ----------
             return {
-                label: 'Reload Button',
+                label: 'Button Reload',
                 type: 'items',
                 items: [{
                     type: "boolean",
@@ -138,7 +138,8 @@ define(["./functions"], function (functions) {
                         value: false,
                         label: "Specific app (specify task)"
                     }],
-                    defaultValue: true
+                    defaultValue: true,
+                    show: function (data) { return data.pCBreload }
                 }, {
                     label: 'Task ID to trigger',
                     type: 'string',
@@ -186,11 +187,10 @@ define(["./functions"], function (functions) {
             }
         },
 
-        button2: function (qlik, sessi) {
-            //var hasDatabridgeHub = $.ajax({ type: "HEAD", url: databridgeHubUrl, async: false });
-
+        button2: function (qlik, sessi) {   // ---------- publish & replace ----------
+            
             return {
-                label: 'Replace App Button',
+                label: 'Button Replace App',
                 type: 'items',
                 items: [{
                     type: "boolean",
@@ -267,25 +267,21 @@ define(["./functions"], function (functions) {
                     type: "object",
                     //dualOutput: true,
                     defaultValue: "#333333",
-                    show: function (layout) {
-                        return layout.pCBreplace == true
-                    }
+                    show: function (layout) { return layout.pCBreplace }
                 }, {
                     label: "Background color",
                     component: "color-picker",
                     ref: "pBgColor2",
                     type: "object",
                     defaultValue: "#ffffff",
-                    show: function (layout) {
-                        return layout.pCBreplace == true
-                    }
+                    show: function (layout) { return layout.pCBreplace }
                 }]
             }
         },
 
-        button3: function (qlik) {
+        button3: function (qlik) {  // ---------- save objects ----------
             return {
-                label: 'Save Object Definitions Button',
+                label: 'Button Save Object Definitions',
                 type: 'items',
                 items: [{
                     type: "boolean",
@@ -298,36 +294,28 @@ define(["./functions"], function (functions) {
                     expression: 'optional',
                     ref: 'pBtnLabel3',
                     defaultValue: 'Save Object',
-                    show: function (data) {
-                        return data.pCBstream == true
-                    }
+                    show: function (data) { return data.pCBstream }
                 }, {
                     label: 'Source Object(s) (comma-separated list)',
                     type: 'string',
                     expression: 'optional',
                     ref: 'pSourceObjectIds',
                     defaultValue: '',
-                    show: function (data) {
-                        return data.pCBstream == true
-                    }
+                    show: function (data) { return data.pCBstream }
                 }, {
                     label: 'Write to extension',
                     type: 'string',
                     expression: 'optional',
                     ref: 'pExtension',
                     defaultValue: 'DevelopersFriend',
-                    show: function (data) {
-                        return data.pCBstream == true
-                    }
+                    show: function (data) { return data.pCBstream }
                 }, {
                     label: 'write to filename',
                     type: 'string',
                     expression: 'optional',
                     ref: 'pFilename',
                     defaultValue: 'dummy.json',
-                    show: function (data) {
-                        return data.pCBstream == true
-                    }
+                    show: function (data) { return data.pCBstream }
                 }, {
                     label: "Text color",
                     component: "color-picker",
@@ -335,25 +323,21 @@ define(["./functions"], function (functions) {
                     type: "object",
                     //dualOutput: true,
                     defaultValue: "#333333",
-                    show: function (data) {
-                        return data.pCBstream == true
-                    }
+                    show: function (data) { return data.pCBstream }
                 }, {
                     label: "Background color",
                     component: "color-picker",
                     ref: "pBgColor3",
                     type: "object",
                     defaultValue: "#ffffff",
-                    show: function (data) {
-                        return data.pCBstream == true
-                    }
+                    show: function (data) { return data.pCBstream }
                 }]
             }
         },
 
-        button4: function (qlik) {
+        button4: function (qlik) {  // ---------- export app ----------
             return {
-                label: 'Export App Button',
+                label: 'Button Export App',
                 type: 'items',
                 items: [{
                     type: "boolean",
@@ -366,17 +350,13 @@ define(["./functions"], function (functions) {
                     expression: 'optional',
                     ref: 'pBtnLabel4',
                     defaultValue: 'Export App',
-                    show: function (data) {
-                        return data.pCBexport == true
-                    }
+                    show: function (data) { return data.pCBexport }
                 }, {
                     type: "boolean",
                     defaultValue: true,
                     ref: "pWithData",
                     label: "Export With Data",
-                    show: function (data) {
-                        return data.pCBexport == true
-                    }
+                    show: function (data) { return data.pCBexport }
                 }, {
                     type: "boolean",
                     component: "switch",
@@ -390,9 +370,7 @@ define(["./functions"], function (functions) {
                         label: "Exclude below sheets"
                     }],
                     defaultValue: false,
-                    show: function (data) {
-                        return data.pCBexport == true
-                    }
+                    show: function (data) { return data.pCBexport }
                 }, {
                     type: "array",
                     ref: "listItems",
@@ -401,9 +379,7 @@ define(["./functions"], function (functions) {
                     allowAdd: true,
                     allowRemove: true,
                     addTranslation: "Add Item",
-                    show: function (data) {
-                        return data.pCBexport == true
-                    },
+                    show: function (data) { return data.pCBexport },
                     items: {
                         label: {
                             //type: "string",
@@ -434,9 +410,7 @@ define(["./functions"], function (functions) {
                                 });
                                 return ret;
                             }
-
                         }
-
                     }
                 }, {
                     label: "Warning: No sheet will be exported!",
@@ -451,25 +425,21 @@ define(["./functions"], function (functions) {
                     type: "object",
                     //dualOutput: true,
                     defaultValue: "#333333",
-                    show: function (data) {
-                        return data.pCBexport == true
-                    }
+                    show: function (data) { return data.pCBexport }
                 }, {
                     label: "Background color",
                     component: "color-picker",
                     ref: "pBgColor4",
                     type: "object",
                     defaultValue: "#ffffff",
-                    show: function (data) {
-                        return data.pCBexport == true
-                    }
+                    show: function (data) { return data.pCBexport }
                 }]
             }
         },
 
-        button5: function (qlik) {
+        button5: function (qlik) {  // ---------- create mappings ----------
             return {
-                label: 'Save Mappings',
+                label: 'Button Save Mappings',
                 type: 'items',
                 items: [{
                     type: "boolean",
@@ -482,51 +452,42 @@ define(["./functions"], function (functions) {
                     expression: 'optional',
                     ref: 'pBtnLabel5',
                     defaultValue: 'Mappings',
-                    show: function (data) {
-                        return data.pCBmappings == true
-                    }
+                    show: function (data) { return data.pCBmappings }
                 }, {
                     label: 'Save in extension',
                     type: 'string',
                     expression: 'optional',
                     ref: 'pMapExtension',
                     defaultValue: 'mappings',
-                    show: function (data) {
-                        return data.pCBmappings == true
-                    }
+                    show: function (data) { return data.pCBmappings }
                 }, {
                     label: 'Filename',
                     type: 'string',
                     expression: 'optional',
                     ref: 'pMapFilename',
                     defaultValue: 'dummy.css',
-                    show: function (data) {
-                        return data.pCBmappings == true
-                    }
+                    show: function (data) { return data.pCBmappings }
                 }, {
                     label: 'Check condition before use',
                     type: 'integer',
                     expression: 'always',
                     ref: 'pMapCondition',
                     defaultValue: '=1 //GetSelectedCount(product.name)>1',
-                    show: function (data) {
-                        return data.pCBmappings == true
-                    }
+                    show: function (data) { return data.pCBmappings }
                 }, {
                     label: 'Error msg if condition is false',
                     type: 'string',
                     expression: 'optional',
                     ref: 'pMapMessage',
                     defaultValue: 'Condition is not met.',
-                    show: function (data) {
-                        return data.pCBmappings == true
-                    }
+                    show: function (data) { return data.pCBmappings }
                 }, {
                     label: 'Keys (separate with CHR(10))',
                     type: 'string',
                     expression: 'always',
                     ref: 'pMapKeyVals',
                     defaultValue: '=Concat(DISTINCT product.name, CHR(10))',
+                    show: function (data) { return data.pCBmappings }
                 }, {
                     type: "array",
                     ref: "pMapWriteFields", //"listItems",
@@ -542,52 +503,65 @@ define(["./functions"], function (functions) {
                             label: "Label",
                             expression: "optional",
                             defaultValue: "='Map ' & Count(DISTINCT product.name) & ' products'",
-                        }, /*{
-                            type: "string",
-                            component: "radiobuttons",
-                            label: "Type of field",
-                            ref: "mapFieldType",
-                            options: [{
-                                value: "calc",
-                                label: "Calculated"
-                            }, {
-                                value: "input",
-                                label: "User input"
-                            }],
-                            defaultValue: "v"
-                        },*/ {
+                        }, {
                             label: 'Option(s) (separate with CHR(10))',
                             type: 'string',
                             expression: 'optional',
                             ref: 'mapFieldOptions',
-                            defaultValue: '=Concat(DISTINCT product.name, CHR(10))',
+                            defaultValue: "='Concat(DISTINCT product.name, CHR(10))'",
                         }, {
                             label: 'Default Option',
                             type: 'string',
                             expression: 'optional',
                             ref: 'mapFieldDefault',
                             defaultValue: '=MaxString(product.name)',
-                        }
+                        }, {
+							label: 'Separate dropdowns split at char',
+                            type: 'string',
+                            ref: 'mapFieldSplitChar',
+                            defaultValue: ''
+						}
                     ],
-                    show: function (data) {
-                        return data.pCBmappings == true
-                    }
+                    show: function (data) { return data.pCBmappings }
                 }, {
                     label: "Add username + timestamp",
                     ref: "pMapAddUsername",
                     type: "boolean",
                     defaultValue: true,
-                    show: function (data) {
-                        return data.pCBmappings == true
-                    }
-                }, {
+                    show: function (data) { return data.pCBmappings }
+                }, /*{
                     label: "Save space for repeating rows",
                     ref: "pSaveSpace",
                     type: "boolean",
-                    defaultValue: true,
-                    show: function (data) {
-                        return data.pCBmappings == true
-                    }
+                    defaultValue: false,
+                    show: function (data) { return data.pCBmappings }
+                },*/ {
+                    label: 'Trigger Action Button ID when done',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pTriggerButton',
+                    defaultValue: '',
+                    show: function (data) { return data.pCBmappings }
+                }, {
+                    label: "Set variable when done",
+                    ref: "pUseSetVariable",
+                    type: "boolean",
+                    defaultValue: false,
+                    show: function (data) { return data.pCBmappings }
+                },{
+                    label: 'Set this variable',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pSetThisVariable1',
+                    defaultValue: '',
+                    show: function (data) { return data.pCBmappings && data.pUseSetVariable }
+                }, {
+                    label: '... to this value',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pSetVariableValue1',
+                    defaultValue: '',
+                    show: function (data) { return data.pCBmappings && data.pUseSetVariable }
                 }, {
                     label: "Text color",
                     component: "color-picker",
@@ -595,18 +569,167 @@ define(["./functions"], function (functions) {
                     type: "object",
                     //dualOutput: true,
                     defaultValue: "#333333",
-                    show: function (data) {
-                        return data.pCBmappings == true
-                    }
+                    show: function (data) { return data.pCBmappings }
                 }, {
                     label: "Background color",
                     component: "color-picker",
                     ref: "pBgColor5",
                     type: "object",
                     defaultValue: "#ffffff",
-                    show: function (data) {
-                        return data.pCBmappings == true
-                    }
+                    show: function (data) { return data.pCBmappings }
+                }]
+            }
+        },
+
+        button6: function (qlik) {  // ---------- delete mappings ----------
+            return {
+                label: 'Button Delete Mapping',
+                type: 'items',
+                items: [{
+                    type: "boolean",
+                    defaultValue: false,
+                    ref: "pCBdelete",
+                    label: "Use Button"
+                }, {
+                    label: 'Button Label',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pBtnLabel6',
+                    defaultValue: 'Delete Mapping',
+                    show: function (data) { return data.pCBdelete }
+                }, {
+                    label: 'Mappings stored in extension',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pDelExtension',
+                    defaultValue: 'mappings',
+                    show: function (data) { return data.pCBdelete }
+                }, {
+                    label: 'Filename',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pDelFilename',
+                    defaultValue: 'dummy.css',
+                    show: function (data) { return data.pCBdelete }
+                }, {
+                    label: 'Check condition before use',
+                    type: 'integer',
+                    expression: 'always',
+                    ref: 'pDelCondition',
+                    defaultValue: '=1 //GetSelectedCount(product.name)>1',
+                    show: function (data) { return data.pCBdelete }
+                }, {
+                    label: 'Error msg if condition is false',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pDelMessage',
+                    defaultValue: 'Condition is not met.',
+                    show: function (data) { return data.pCBdelete }
+                }, {
+                    label: 'Keys to delete (separate with CHR(10))',
+                    type: 'string',
+                    expression: 'always',
+                    ref: 'pDelKeyVals',
+                    defaultValue: '=Concat(DISTINCT %productId, CHR(10))',
+                    show: function (data) { return data.pCBdelete }
+                }, {
+                    label: "Set variable when done",
+                    ref: "pUseSetVariable2",
+                    type: "boolean",
+                    defaultValue: false,
+                    show: function (data) { return data.pCBdelete }
+                },{
+                    label: 'Set this variable',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pSetThisVariable2',
+                    defaultValue: '',
+                    show: function (data) { return data.pCBdelete && data.pUseSetVariable2 }
+                }, {
+                    label: '... to this value',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pSetVariableValue2',
+                    defaultValue: '',
+                    show: function (data) { return data.pCBdelete && data.pUseSetVariable2 }
+                }, {
+                    label: "Text color",
+                    component: "color-picker",
+                    ref: "pTxtColor6",
+                    type: "object",
+                    //dualOutput: true,
+                    defaultValue: "#333333",
+                    show: function (data) { return data.pCBdelete }
+                }, {
+                    label: "Background color",
+                    component: "color-picker",
+                    ref: "pBgColor6",
+                    type: "object",
+                    defaultValue: "#ffffff",
+                    show: function (data) { return data.pCBdelete }
+                }]
+            }
+        },
+		
+       button7: function (qlik) {  // ---------- iframe ----------
+            return {
+                label: 'Button Open iframe',
+                type: 'items',
+                items: [{
+                    type: "boolean",
+                    defaultValue: false,
+                    ref: "pCBiframe",
+                    label: "Use Button"
+                }, {
+                    label: 'Button Label',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pBtnLabel7',
+                    defaultValue: 'Open iframe',
+                    show: function (data) { return data.pCBiframe }
+                }, {
+                    label: 'iFrame Title',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pIframeTitle',
+                    defaultValue: '',
+                    show: function (data) { return data.pCBiframe }
+                },{
+                    label: 'iFrame Url',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pIframeSrc',
+                    defaultValue: '',
+                    show: function (data) { return data.pCBiframe }
+                }, {
+                    label: "Text color",
+                    component: "color-picker",
+                    ref: "pTxtColor7",
+                    type: "object",
+                    //dualOutput: true,
+                    defaultValue: "#333333",
+                    show: function (data) { return data.pCBiframe }
+                }, {
+                    label: "Background color",
+                    component: "color-picker",
+                    ref: "pBgColor7",
+                    type: "object",
+                    defaultValue: "#ffffff",
+                    show: function (data) { return data.pCBiframe }
+                }, {
+                    label: 'Set this variable',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pSetThisVariable3',
+                    defaultValue: '',
+                    show: function (data) { return data.pCBiframe  }
+                }, {
+                    label: '... to this value',
+                    type: 'string',
+                    expression: 'optional',
+                    ref: 'pSetVariableValue3',
+                    defaultValue: '',
+                    show: function (data) { return data.pCBiframe }
                 }]
             }
         },
@@ -615,7 +738,8 @@ define(["./functions"], function (functions) {
             return {
                 label: 'Presentation',
                 type: 'items',
-                items: [{
+                items: [ 
+				/*{
                     label: 'Button width',
                     type: 'integer',
                     ref: 'pBtnWidth',
@@ -624,6 +748,20 @@ define(["./functions"], function (functions) {
                     max: 99,
                     step: 1,
                     defaultValue: 95
+                },*/ 
+				{
+                    type: "number",
+                    component: "dropdown",
+                    label: "Button Width",
+                    ref: "pBtnWidth2",
+                    options: [
+                        { value: 100, label: "1 per row" },
+                        { value: 100/2, label: "2 per row" },
+                        { value: 100/3, label: "3 per row" },
+						{ value: 100/4, label: "4 per row" },
+						{ value: 100/5, label: "5 per row" },
+						{ value: 100/6, label: "6 per row" }
+                    ],
                 }, {
                     type: "string",
                     component: "dropdown",
@@ -635,14 +773,19 @@ define(["./functions"], function (functions) {
                         { value: "i", label: "Icon" },
                         { value: "it", label: "Icon and Text" }
                     ],
+                }, {
+                    type: "boolean",
+                    defaultValue: false,
+                    ref: "pNoBkgr",
+                    label: "Turn off background"
                 }]
             }
         },
 
-        about: function ($) {
+        about: function (qext) {
             return {
                 version: {
-                    label: 'Extension version',
+                    label: function (arg) { return 'Extension version ' + qext.version; },
                     component: "link",
                     url: '../extensions/DevelopersFriend/DevelopersFriend.qext'
                 },
@@ -662,14 +805,14 @@ define(["./functions"], function (functions) {
                     label: "About Us",
                     component: "link",
                     url: 'https://www.databridge.ch'
-                },
+                } /*,
                 docu: {
                     label: "Open Documentation",
                     component: "button",
                     action: function (arg) {
                         window.open('https://github.com/ChristofSchwarz/qs_ext_reloadreplace', '_blank');
                     }
-                }
+                } */
             }
         }
     }
