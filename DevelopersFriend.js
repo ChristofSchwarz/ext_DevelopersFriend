@@ -9,14 +9,23 @@ define(["qlik", "jquery", "text!./style.css", "./functions", "./props"],
             baseUrl: location.href.indexOf('/sense/app') > -1 ? location.href.split('/sense/app')[0] : location.href.split('/single')[0],
             xrfkey: Math.random().toString().substr(2).repeat(16).substr(0, 16)
         };
+        var qext;
 
         // find out if this site also has the data/\bridge Hub mashup installed
-        $.ajax({
+        if (!sessi.hasDatabridgeHub) $.ajax({
             type: "HEAD",
             url: sessi.databridgeHubUrl,
             success: function (returnData) { sessi.hasDatabridgeHub = true; },
             error: function (xhr, status, error) { sessi.hasDatabridgeHub = false; }
         });
+
+        if (!qext) $.ajax({
+            url: '../extensions/DevelopersFriend/DevelopersFriend.qext',
+            dataType: 'json',
+            async: false,  // wait for this call to finish.
+            success: function (data) { qext = data; }
+        });
+
 
         $("<style>").html(cssContent).appendTo("head");
 
@@ -24,16 +33,30 @@ define(["qlik", "jquery", "text!./style.css", "./functions", "./props"],
             initialProperties: {
                 showTitles: false,
                 disableNavMenu: true
+
             },
 
             definition: {
                 type: "items",
                 component: "accordion",
-                items: {
-                    settings: {
+                items: [
+                    {
+                        uses: "dimensions",
+                        min: 0,
+                        max: 1
+                    }, {
                         uses: "settings"
-                    },
-                    extensionSection: {
+                    }, {
+                        uses: "addons",
+                        items: [
+                            {
+                                uses: "dataHandling",
+                                items: [
+                                    { uses: "calcCond" }
+                                ]
+                            }
+                        ]
+                    }, {
                         label: 'Extension Settings',
                         type: 'items',
                         component: 'expandable-items',
@@ -44,15 +67,16 @@ define(["qlik", "jquery", "text!./style.css", "./functions", "./props"],
                             props.button3(qlik),
                             props.button4(qlik),
                             props.button5(qlik),
+                            props.button6(qlik),
+                            props.button7(qlik),
                             props.presentation(qlik)
                         ]
-                    },
-                    aboutSection: {
+                    }, {
                         label: 'About this extension',
                         type: 'items',
-                        items: props.about($)
+                        items: props.about(qext)
                     }
-                }
+                ]
             },
 
             resize: function ($element, layout) {
@@ -60,12 +84,20 @@ define(["qlik", "jquery", "text!./style.css", "./functions", "./props"],
                 return qlik.Promise.resolve();
             },
 
-            paint: async function ($element, layout) {
+            paint: function ($element, layout) {
 
                 var self = this;
-                var ownId = this.options.id;
+                //var ownId = this.options.id;
+				const ownId = layout.qInfo.qId;
                 console.log('Developer\'s Friend ' + ownId + ' paint method. layout:', layout);
                 var app = qlik.currApp(this);
+
+                // turn off (white) bg color of this object
+                $('[tid="' + ownId + '"] .qv-inner-object').css('background-color', layout.pNoBkgr ? 'rgba(0,0,0,0)' : '');
+                $('[tid="' + ownId + '"] .qv-object').css('border-color', layout.pNoBkgr ? 'rgba(0,0,0,0)' : '');
+				if(layout.pNoBkgr) {
+					$('[tid="' + ownId + '"] header').hide();
+				}
 
                 if (!sessi.hasOwnProperty(ownId)) {
                     sessi[ownId] = {
@@ -103,6 +135,12 @@ define(["qlik", "jquery", "text!./style.css", "./functions", "./props"],
                     } else if (id == 5) {
                         return (layout.pIconTxt.indexOf('i') > -1 ? '<span class="lui-icon__icon lui-icon lui-icon--direct-discovery"></span>&nbsp;' : '')
                             + (layout.pIconTxt.indexOf('t') > -1 ? layout.pBtnLabel5 : '')
+                    } else if (id == 6) {
+                        return (layout.pIconTxt.indexOf('i') > -1 ? '<span class="lui-icon__icon lui-icon lui-icon--bin"></span>&nbsp;' : '')
+                            + (layout.pIconTxt.indexOf('t') > -1 ? layout.pBtnLabel6 : '')
+                    } else if (id == 7) {
+                        return (layout.pIconTxt.indexOf('i') > -1 ? '<span class="lui-icon__icon lui-icon lui-icon--object"></span>&nbsp;' : '')
+                            + (layout.pIconTxt.indexOf('t') > -1 ? layout.pBtnLabel7 : '')
                     } else {
                         return 'invalid id in function buttonHTML'
                     }
@@ -121,6 +159,8 @@ define(["qlik", "jquery", "text!./style.css", "./functions", "./props"],
                     + '<button id="btn3_' + ownId + '" class="lui-button developersFriend-ellipsis" style="display:none;" />' + buttonHTML(3) + '</button>'
                     + '<button id="btn4_' + ownId + '" class="lui-button developersFriend-ellipsis" style="display:none;" />' + buttonHTML(4) + '</button>'
                     + '<button id="btn5_' + ownId + '" class="lui-button developersFriend-ellipsis" style="display:none;" />' + buttonHTML(5) + '</button>'
+                    + '<button id="btn6_' + ownId + '" class="lui-button developersFriend-ellipsis" style="display:none;" />' + buttonHTML(6) + '</button>'
+                    + '<button id="btn7_' + ownId + '" class="lui-button developersFriend-ellipsis" style="display:none;" />' + buttonHTML(7) + '</button>'
                     + '</div>';
 
                 if ($element.html() == "") {
@@ -149,10 +189,28 @@ define(["qlik", "jquery", "text!./style.css", "./functions", "./props"],
                         console.log('Button5 clicked.');
                         functions.btnClick5($, ownId, app, layout, sessi[ownId].vproxy, httpHeader);
                     });
+                    // Functionality of DELETE button
+                    $("#btn6_" + ownId).on("click", function () {
+                        console.log('Button6 clicked.');
+                        functions.btnClick6($, ownId, app, layout, sessi[ownId].vproxy, httpHeader);
+                    });
+                    // Functionality of IFRAME button
+                    $('#btn7_' + ownId).click(function () {
+                        console.log('button 7 clicked');
+						if (layout.pSetThisVariable3) {
+							app.variable.setStringValue(layout.pSetThisVariable3, layout.pSetVariableValue3);
+						};
+                        functions.showiframe(ownId, layout.pIframeTitle, layout.pIframeSrc, 'Schließen');
+						
+                        $('#msgparent_' + ownId + ' .lui-dialog').css('width', '90%').css('height', ($('#qv-page-container').height() * .9) + 'px');
+                        // $('#msgparent_' + ownId + ' .lui-dialog__body').css('padding', '0')
+                        //    .html('<iframe style="width:' + (99) + '%;height:' + (99) + '%;/*transform: scale(.8);*/"'
+                        //        + 'src="https://bi.stiglechner.at/single/?appid=7206aa4a-1922-466d-afcb-a8d76fc46acf&sheet=d7167ea4-8d94-4cf1-9054-9a01d4ce7e8e&opt=ctxmenu,currsel" />');
+                    });
                 }
 
                 // updating the elements without repainting entire extension html
-                $('#button_parent_' + ownId + ' button').css('width', layout.pBtnWidth + "%");
+                $('#button_parent_' + ownId + ' button').css('width', 'calc(' + layout.pBtnWidth2 + "% - 2px)");
 
 
                 if (layout.pCBshowIfFormula == true && layout.pShowCondition.substr(0, 1) == '=') {
@@ -169,6 +227,7 @@ define(["qlik", "jquery", "text!./style.css", "./functions", "./props"],
                 httpHeader["X-Qlik-Xrfkey"] = randomKey;
 
                 // Draw the html buttons		
+
 
                 var renderBtn1 = layout.pCBreload;
                 if (layout.pCBshowIfFormula)
@@ -227,6 +286,27 @@ define(["qlik", "jquery", "text!./style.css", "./functions", "./props"],
                     $('#btn5_' + ownId).html(buttonHTML(5));
                 } else {
                     $('#btn5_' + ownId).hide();
+                }
+
+                var renderBtn6 = layout.pCBdelete;
+                if (renderBtn6) {
+                    $('#btn6_' + ownId).show();
+                    $('#btn6_' + ownId).css('color', layout.pTxtColor6.color ? layout.pTxtColor6.color : layout.pTxtColor6);
+                    $('#btn6_' + ownId).css('background-color', layout.pBgColor6.color ? layout.pBgColor6.color : layout.pBgColor6);
+                    $('#btn6_' + ownId).html(buttonHTML(6));
+                } else {
+                    $('#btn6_' + ownId).hide();
+                }
+
+
+                var renderBtn7 = layout.pCBiframe;
+                if (renderBtn7) {
+                    $('#btn7_' + ownId).show();
+					$('#btn7_' + ownId).css('color', layout.pTxtColor7.color ? layout.pTxtColor7.color : layout.pTxtColor7);
+                    $('#btn7_' + ownId).css('background-color', layout.pBgColor7.color ? layout.pBgColor7.color : layout.pBgColor7);
+                    $('#btn7_' + ownId).html(buttonHTML(7));
+                } else {
+                    $('#btn7_' + ownId).hide();
                 }
 
                 if (!sessi.user) {
